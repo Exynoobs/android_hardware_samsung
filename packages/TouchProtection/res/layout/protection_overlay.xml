@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     SPDX-FileCopyrightText: 2026 The LineageOS Project
+     SPDX-License-Identifier: Apache-2.0
+-->
+<org.lineageos.touchprotection.ProtectionView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#D9000000"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_weight="1"
+        android:gravity="bottom"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:text="@string/touch_protection_title"
+            android:textColor="#FAFAFA"
+            android:textSize="4.2mm" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:fontFamily="sans-serif"
+            android:gravity="center"
+            android:text="@string/overlay_body"
+            android:textColor="#FAFAFA"
+            android:textSize="3.15mm" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_weight="2">
+
+        <ImageView
+            android:id="@+id/pill"
+            android:layout_width="@dimen/overlay_ring_size"
+            android:layout_height="@dimen/overlay_pill_height"
+            android:layout_gravity="center"
+            android:layout_marginBottom="113dp"
+            android:alpha="0"
+            android:scaleX="0"
+            android:scaleY="0"
+            android:src="@drawable/unlock_pill"
+            android:visibility="invisible" />
+
+        <ImageView
+            android:layout_width="9dp"
+            android:layout_height="16dp"
+            android:layout_gravity="center"
+            android:layout_marginBottom="130dp"
+            android:alpha="0.3"
+            android:rotation="270"
+            android:src="@drawable/ic_chevron" />
+
+        <ImageView
+            android:layout_width="9dp"
+            android:layout_height="16dp"
+            android:layout_gravity="center"
+            android:layout_marginBottom="100dp"
+            android:alpha="0.6"
+            android:rotation="270"
+            android:src="@drawable/ic_chevron" />
+
+        <ImageView
+            android:layout_width="9dp"
+            android:layout_height="16dp"
+            android:layout_gravity="center"
+            android:layout_marginBottom="70dp"
+            android:rotation="270"
+            android:src="@drawable/ic_chevron" />
+
+        <ImageView
+            android:id="@+id/lock"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_lock_open" />
+
+        <ImageView
+            android:id="@+id/ring"
+            android:layout_width="@dimen/overlay_ring_size"
+            android:layout_height="@dimen/overlay_ring_size"
+            android:layout_gravity="center"
+            android:src="@drawable/unlock_ring" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="73dp"
+            android:fontFamily="sans-serif"
+            android:gravity="center"
+            android:text="@string/overlay_hint"
+            android:textColor="#FAFAFA"
+            android:textSize="2.625mm" />
+    </FrameLayout>
+
+</org.lineageos.touchprotection.ProtectionView>

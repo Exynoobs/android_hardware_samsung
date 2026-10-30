@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     SPDX-FileCopyrightText: 2026 The LineageOS Project
+     SPDX-License-Identifier: Apache-2.0
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="org.lineageos.touchprotection"
+    android:sharedUserId="android.uid.system">
+
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <application
+        android:label="@string/touch_protection_title"
+        android:persistent="true"
+        android:theme="@style/Theme.SubSettingsBase.Expressive">
+
+        <receiver
+            android:name=".BootCompletedReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <service
+            android:name=".TouchProtectionService"
+            android:exported="false" />
+
+        <activity
+            android:name=".settings.SettingsActivity"
+            android:label="@string/touch_protection_title"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.android.settings.action.EXTRA_SETTINGS" />
+            </intent-filter>
+            <meta-data
+                android:name="com.android.settings.category"
+                android:value="com.android.settings.category.ia.display" />
+            <meta-data
+                android:name="com.android.settings.group_key"
+                android:value="category_other" />
+            <meta-data
+                android:name="com.android.settings.summary"
+                android:resource="@string/touch_protection_summary" />
+        </activity>
+    </application>
+</manifest>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     SPDX-FileCopyrightText: 2026 The LineageOS Project
+     SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+    <string name="touch_protection_title">Accidental touch protection</string>
+    <string name="touch_protection_summary">Protect your phone from accidental touches when it\'s in a dark place, such as a pocket or bag.</string>
+
+    <string name="overlay_body">Your phone is being protected from accidental touches.</string>
+    <string name="overlay_hint">Swipe up to dismiss accidental touch protection.</string>
+</resources>
