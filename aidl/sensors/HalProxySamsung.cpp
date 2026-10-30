@@ -7,7 +7,11 @@
 #include "HalProxySamsung.h"
 
 #include <ConvertUtils.h>
+#include <convertV2_1.h>
+#include <dlfcn.h>
 #include <sensors.sysprop.h>
+
+#include <fstream>
 
 // #define VERBOSE
 
@@ -19,8 +23,47 @@ namespace hardware {
 namespace sensors {
 namespace implementation {
 
+using ::aidl::android::hardware::sensors::AdditionalInfo;
 using ::android::hardware::sensors::V2_0::implementation::ScopedWakelock;
 using ::android::hardware::sensors::V2_1::SensorType;
+using ::android::hardware::sensors::V2_1::implementation::convertToOldEvent;
+using ::android::hardware::sensors::V2_1::implementation::ISensorsSubHal;
+
+namespace {
+
+constexpr char kSensorHubsType[] = "com.samsung.sensor.sensorhubs";
+
+ISensorsSubHal* findSubHalForSensorType(const std::string& type) {
+    for (const char* config : {"/vendor/etc/sensors/hals.conf", "/odm/etc/sensors/hals.conf"}) {
+        std::ifstream stream(config);
+        std::string library;
+        while (stream >> library) {
+            void* handle = nullptr;
+            for (const std::string& dir : {"", "/vendor/lib64/hw/", "/odm/lib64/hw/"}) {
+                handle = dlopen((dir + library).c_str(), RTLD_NOW | RTLD_NOLOAD);
+                if (handle != nullptr) break;
+            }
+            if (handle == nullptr) continue;
+
+            auto getSubHal = reinterpret_cast<decltype(&sensorsHalGetSubHal_2_1)>(
+                    dlsym(handle, "sensorsHalGetSubHal_2_1"));
+            if (getSubHal == nullptr) continue;
+
+            uint32_t version;
+            ISensorsSubHal* subHal = getSubHal(&version);
+            bool found = false;
+            subHal->getSensorsList_2_1([&](const auto& sensors) {
+                for (const auto& sensor : sensors) {
+                    if (sensor.typeAsString == type) found = true;
+                }
+            });
+            if (found) return subHal;
+        }
+    }
+    return nullptr;
+}
+
+}  // namespace
 
 HalProxySamsung::HalProxySamsung() {
     using Workaround = SensorsHalProperties::device_orientation_workaround_values;
@@ -32,6 +75,13 @@ HalProxySamsung::HalProxySamsung() {
             if (sensor.typeAsString == "com.samsung.sensor.folding_state") {
                 mFoldingStateHandle = handle;
             }
+        }
+    }
+
+    for (const auto& [handle, sensor] : getSensors()) {
+        if (sensor.typeAsString == kSensorHubsType) {
+            mSensorHubsHandle = handle;
+            mSensorHubsSubHal = findSubHalForSensorType(kSensorHubsType);
         }
     }
 }
@@ -60,6 +110,56 @@ void HalProxySamsung::postEventsToMessageQueue(const std::vector<Event>& events,
         }
     }
     HalProxy::postEventsToMessageQueue(remapped, numWakeupEvents, std::move(wakelock));
+}
+
+/*
+ * The vendor HAL passes raw context bytes (screen state etc.) on to the sensor hub
+ * algorithms when it receives an event of the sensorhubs type, which HalProxy only
+ * accepts in data injection mode. Accept them as a custom operation parameter
+ * instead: SensorManager#setOperationParameter with floats {length, bytes...}.
+ */
+ndk::ScopedAStatus HalProxySamsung::injectSensorData(
+        const ::aidl::android::hardware::sensors::Event& in_event) {
+    using AidlEvent = ::aidl::android::hardware::sensors::Event;
+    using AidlSensorType = ::aidl::android::hardware::sensors::SensorType;
+
+    if (in_event.sensorHandle != mSensorHubsHandle || mSensorHubsSubHal == nullptr ||
+        in_event.sensorType != AidlSensorType::ADDITIONAL_INFO) {
+        Event hidlEvent;
+        convertToHidlEvent(in_event, &hidlEvent);
+        if (HalProxy::injectSensorData(convertToOldEvent(hidlEvent)) != Result::OK) {
+            return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+        }
+        return ndk::ScopedAStatus::ok();
+    }
+
+    const auto& info = in_event.payload.get<AidlEvent::EventPayload::additional>();
+    if (info.type != AdditionalInfo::AdditionalInfoType::AINFO_CUSTOM_START) {
+        // Begin and end frames around the payload.
+        return ndk::ScopedAStatus::ok();
+    }
+
+    const auto& values = info.payload.get<AdditionalInfo::AdditionalInfoPayload::dataFloat>().values;
+    const int32_t length = static_cast<int32_t>(values[0]);
+    if (length <= 0 || length >= static_cast<int32_t>(values.size())) {
+        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+    }
+
+    // Layout expected by the vendor HAL: int32 0 (single message), int32 length, bytes.
+    Event event{};
+    event.timestamp = in_event.timestamp;
+    event.sensorHandle = mSensorHubsHandle & 0xFFFFFF;
+    event.sensorType = getSensors().at(mSensorHubsHandle).type;
+    auto* data = reinterpret_cast<int32_t*>(event.u.data.data());
+    data[0] = 0;
+    data[1] = length;
+    auto* bytes = reinterpret_cast<uint8_t*>(&data[2]);
+    for (int32_t i = 0; i < length; i++) {
+        bytes[i] = static_cast<uint8_t>(values[i + 1]);
+    }
+
+    mSensorHubsSubHal->injectSensorData_2_1(event);
+    return ndk::ScopedAStatus::ok();
 }
 
 ndk::ScopedAStatus HalProxySamsung::getSensorsList(

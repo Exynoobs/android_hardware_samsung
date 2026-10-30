@@ -7,6 +7,7 @@
 #pragma once
 
 #include <HalProxyAidl.h>
+#include <V2_1/SubHal.h>
 
 #include <atomic>
 
@@ -21,6 +22,9 @@ class HalProxySamsung : public HalProxyAidl {
     HalProxySamsung();
 
   private:
+    ndk::ScopedAStatus injectSensorData(
+            const ::aidl::android::hardware::sensors::Event& in_event) override;
+
     ndk::ScopedAStatus getSensorsList(
             std::vector<::aidl::android::hardware::sensors::SensorInfo>* _aidl_return) override;
 
@@ -31,6 +35,8 @@ class HalProxySamsung : public HalProxyAidl {
     bool mHideDeviceOrientation = false;
     int32_t mFoldingStateHandle = -1;
     std::atomic<bool> mFolded = false;
+    int32_t mSensorHubsHandle = -1;
+    ::android::hardware::sensors::V2_1::implementation::ISensorsSubHal* mSensorHubsSubHal = nullptr;
 };
 
 }  // namespace implementation
